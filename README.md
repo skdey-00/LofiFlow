@@ -23,9 +23,10 @@ A physics-based audio mixer where you position sounds in a virtual 3D space inst
 
 ### How to Run
 
-1. **Open a terminal** and navigate to the project folder:
+1. **Clone the repository**:
    ```bash
-   cd "C:\Users\sanme\desktop\AI projects\Lofi Flow"
+   git clone https://github.com/skdey-00/Vibescape-WhiteNoise.git
+   cd Vibescape-WhiteNoise
    ```
 
 2. **Install dependencies** (only needed once):
