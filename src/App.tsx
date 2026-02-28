@@ -6,6 +6,7 @@ import { EffectsPanel } from "./components/EffectsPanel"
 import { PresetPanel } from "./components/PresetPanel"
 import { AddSoundPanel } from "./components/AddSoundPanel"
 import { VolumeSlider } from "./components/VolumeSlider"
+import { InfoGuide } from "./components/InfoGuide"
 
 const SOUND_CONFIG = [
   { id: "rain", emoji: "🌧️", x: 0, y: -100, muted: false },
@@ -31,6 +32,7 @@ export default function App() {
   const [showEffects, setShowEffects] = useState(false)
   const [showPresets, setShowPresets] = useState(false)
   const [showAddSound, setShowAddSound] = useState(false)
+  const [showInfo, setShowInfo] = useState(false)
   const [soundCounter, setSoundCounter] = useState(0)
   const [selectedSoundId, setSelectedSoundId] = useState<string | null>(null)
   const [hasDragged, setHasDragged] = useState(false)
@@ -367,6 +369,24 @@ export default function App() {
           📚 Presets
         </motion.button>
         <LofiToggle engine={engine} onToggleEffects={() => setShowEffects(!showEffects)} showEffects={showEffects} />
+        <motion.button
+          whileHover={{ scale: 1.05, y: -2 }}
+          whileTap={{ scale: 0.95 }}
+          onClick={() => setShowInfo(true)}
+          style={{
+            padding: "12px 16px",
+            borderRadius: "12px",
+            background: "rgba(255,255,255,0.1)",
+            border: "2px solid rgba(255,255,255,0.2)",
+            color: "white",
+            fontSize: "18px",
+            fontWeight: "600",
+            cursor: "pointer",
+            transition: "all 0.2s",
+          }}
+        >
+          ℹ️
+        </motion.button>
       </div>
 
       {/* Effects Panel */}
@@ -415,6 +435,12 @@ export default function App() {
         isOpen={showAddSound}
         onClose={() => setShowAddSound(false)}
         onAddSound={handleAddSound}
+      />
+
+      {/* Info Guide */}
+      <InfoGuide
+        isOpen={showInfo}
+        onClose={() => setShowInfo(false)}
       />
 
       {/* Spatial Grid */}
