@@ -369,25 +369,44 @@ export default function App() {
           📚 Presets
         </motion.button>
         <LofiToggle engine={engine} onToggleEffects={() => setShowEffects(!showEffects)} showEffects={showEffects} />
-        <motion.button
-          whileHover={{ scale: 1.05, y: -2 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowInfo(true)}
-          style={{
-            padding: "12px 16px",
-            borderRadius: "12px",
-            background: "rgba(255,255,255,0.1)",
-            border: "2px solid rgba(255,255,255,0.2)",
-            color: "white",
-            fontSize: "18px",
-            fontWeight: "600",
-            cursor: "pointer",
-            transition: "all 0.2s",
-          }}
-        >
-          ℹ️
-        </motion.button>
       </div>
+
+      {/* Info Button - Top Right */}
+      <motion.button
+        whileHover={{ scale: 1.1 }}
+        whileTap={{ scale: 0.9 }}
+        onClick={() => setShowInfo(true)}
+        style={{
+          position: "absolute",
+          top: "20px",
+          right: "20px",
+          width: "40px",
+          height: "40px",
+          borderRadius: "50%",
+          background: "rgba(255,255,255,0.05)",
+          border: "1px solid rgba(255,255,255,0.1)",
+          color: "rgba(255,255,255,0.5)",
+          fontSize: "18px",
+          cursor: "pointer",
+          transition: "all 0.2s",
+          zIndex: 100,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+        }}
+        onMouseEnter={(e) => {
+          e.currentTarget.style.background = "rgba(255,255,255,0.1)"
+          e.currentTarget.style.color = "rgba(255,255,255,0.8)"
+          e.currentTarget.style.borderColor = "rgba(255,255,255,0.2)"
+        }}
+        onMouseLeave={(e) => {
+          e.currentTarget.style.background = "rgba(255,255,255,0.05)"
+          e.currentTarget.style.color = "rgba(255,255,255,0.5)"
+          e.currentTarget.style.borderColor = "rgba(255,255,255,0.1)"
+        }}
+      >
+        ℹ️
+      </motion.button>
 
       {/* Effects Panel */}
       <AnimatePresence>
