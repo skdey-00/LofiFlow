@@ -12,8 +12,6 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks: {
-          // Separate Three.js and 3D libraries into their own chunk
-          'three-vendor': ['three', '@react-three/fiber', '@react-three/drei'],
           // Separate React libraries
           'react-vendor': ['react', 'react-dom'],
           // Separate animation library
@@ -28,6 +26,6 @@ export default defineConfig({
   },
   // Optimize dependencies
   optimizeDeps: {
-    include: ['three', '@react-three/fiber', '@react-three/drei', 'framer-motion'],
+    include: ['framer-motion'],
   },
 })
