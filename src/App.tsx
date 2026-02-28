@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { SpatialAudioEngine } from "./audio/SpatialAudioEngine"
 import { LofiToggle } from "./components/LofiToggle"
 import { EffectsPanel } from "./components/EffectsPanel"
-import { PresetPanel, type Preset } from "./components/PresetPanel"
+import { PresetPanel } from "./components/PresetPanel"
 import { AddSoundPanel } from "./components/AddSoundPanel"
 import { VolumeSlider } from "./components/VolumeSlider"
 
@@ -89,7 +89,7 @@ export default function App() {
     }
   }
 
-  const handleAddSound = async (name: string, emoji: string, audioFile: File) => {
+  const handleAddSound = async (_name: string, emoji: string, audioFile: File) => {
     const newId = `custom-${soundCounter}`
     setSoundCounter(prev => prev + 1)
 
