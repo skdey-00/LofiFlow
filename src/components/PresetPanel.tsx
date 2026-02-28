@@ -2,6 +2,8 @@ import { motion, AnimatePresence } from "framer-motion"
 import { SpatialAudioEngine } from "../audio/SpatialAudioEngine"
 import { PRESETS, Preset } from "../lib/presets"
 
+export type { Preset }
+
 interface PresetPanelProps {
   engine: SpatialAudioEngine
   isOpen: boolean

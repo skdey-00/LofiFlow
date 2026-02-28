@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { SpatialAudioEngine } from "./audio/SpatialAudioEngine"
 import { LofiToggle } from "./components/LofiToggle"
 import { EffectsPanel } from "./components/EffectsPanel"
-import { PresetPanel, Preset } from "./components/PresetPanel"
+import { PresetPanel, type Preset } from "./components/PresetPanel"
 import { AddSoundPanel } from "./components/AddSoundPanel"
 import { VolumeSlider } from "./components/VolumeSlider"
 
@@ -25,7 +25,6 @@ interface Sound {
 export default function App() {
   const engine = useMemo(() => new SpatialAudioEngine(), [])
   const [started, setStarted] = useState(false)
-  const [loading, setLoading] = useState(false)
   const [sounds, setSounds] = useState<Sound[]>(SOUND_CONFIG)
   const [draggingId, setDraggingId] = useState<string | null>(null)
   const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 })
@@ -135,8 +134,6 @@ export default function App() {
   useEffect(() => {
     if (!started) return
 
-    setLoading(true)
-
     // Resume AudioContext first (required by browsers after user interaction)
     engine.resumeContext().then(() => {
       // Load and play each sound immediately as it loads
@@ -156,9 +153,6 @@ export default function App() {
           }
         })
       })
-
-      // Hide loading state after a short delay
-      setTimeout(() => setLoading(false), 500)
     })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [started])
