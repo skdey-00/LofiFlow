@@ -4,6 +4,7 @@ export type SoundNodeChain = {
   panner: PannerNode
   filter: BiquadFilterNode
   sendGain: GainNode
+  baseGain: number // Store the base gain level for unmuting
 }
 
 export type EffectType = 'reverb' | 'delay'
@@ -22,6 +23,8 @@ export class SpatialAudioEngine {
   private masterLowpass = this.ctx.createBiquadFilter()
   private sounds = new Map<string, SoundNodeChain>()
   private buffers = new Map<string, AudioBuffer>()
+  private mutedSounds = new Set<string>()
+  private effectsSendGain = 0.8 // Increased from 0.3 for more noticeable effects
 
   // Effect nodes
   private reverbGain: GainNode
@@ -103,6 +106,12 @@ export class SpatialAudioEngine {
     this.buffers.set(id, audio)
   }
 
+  async loadSoundFromFile(id: string, file: File) {
+    const arrayBuffer = await file.arrayBuffer()
+    const audio = await this.ctx.decodeAudioData(arrayBuffer)
+    this.buffers.set(id, audio)
+  }
+
   playSound(id: string) {
     const buffer = this.buffers.get(id)
     if (!buffer) return
@@ -124,7 +133,8 @@ export class SpatialAudioEngine {
 
     filter.type = "lowpass"
     filter.frequency.value = 12000
-    sendGain.gain.value = 0.3
+    sendGain.gain.value = this.effectsSendGain
+    gain.gain.value = 1.0 // Initial gain
 
     // Connect dry signal
     source.connect(gain).connect(panner).connect(filter).connect(this.masterGain)
@@ -136,7 +146,7 @@ export class SpatialAudioEngine {
 
     source.start()
 
-    this.sounds.set(id, { source, gain, panner, filter, sendGain })
+    this.sounds.set(id, { source, gain, panner, filter, sendGain, baseGain: 1.0 })
   }
 
   stopSound(id: string) {
@@ -149,6 +159,49 @@ export class SpatialAudioEngine {
       sound.source.stop()
       this.sounds.delete(id)
     }, 500)
+  }
+
+  setMute(id: string, muted: boolean) {
+    const sound = this.sounds.get(id)
+    if (!sound) return
+
+    const now = this.ctx.currentTime
+    if (muted) {
+      // Add to muted set
+      this.mutedSounds.add(id)
+      // Store current gain and set to 0
+      sound.baseGain = sound.gain.gain.value
+      sound.gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1)
+    } else {
+      // Remove from muted set
+      this.mutedSounds.delete(id)
+      // Restore the base gain
+      sound.gain.gain.exponentialRampToValueAtTime(Math.max(0.1, sound.baseGain), now + 0.1)
+    }
+  }
+
+  isMuted(id: string): boolean {
+    return this.mutedSounds.has(id)
+  }
+
+  setSoundVolume(id: string, volume: number) {
+    const sound = this.sounds.get(id)
+    if (!sound) return
+
+    // Update base gain which is used in updatePosition
+    sound.baseGain = volume
+
+    // If not muted and not being dragged, apply immediately
+    if (!this.mutedSounds.has(id)) {
+      const now = this.ctx.currentTime
+      sound.gain.gain.exponentialRampToValueAtTime(Math.max(0.001, volume), now + 0.1)
+    }
+  }
+
+  getSoundVolume(id: string): number {
+    const sound = this.sounds.get(id)
+    if (!sound) return 0.5
+    return sound.baseGain
   }
 
   /**
@@ -189,10 +242,15 @@ export class SpatialAudioEngine {
     // Increase reverb when closer to walls (sound reflects off walls)
     const wallReverbBoost = Math.max(0, 1 - minWallDistance / 5) * this.roomConfig.wallReflection
 
-    // Apply all physics calculations
-    sound.gain.gain.exponentialRampToValueAtTime(volume, now + 0.05)
+    // Store the calculated volume in baseGain for use when unmuting
+    sound.baseGain = volume
+
+    // Apply all physics calculations (except gain if muted)
+    if (!this.mutedSounds.has(id)) {
+      sound.gain.gain.exponentialRampToValueAtTime(volume, now + 0.05)
+    }
     sound.filter.frequency.exponentialRampToValueAtTime(cutoffFreq, now + 0.05)
-    sound.sendGain.gain.exponentialRampToValueAtTime(0.3 + wallReverbBoost, now + 0.1)
+    sound.sendGain.gain.exponentialRampToValueAtTime(this.effectsSendGain + wallReverbBoost, now + 0.1)
   }
 
   toggleLofi(on: boolean) {
@@ -202,10 +260,11 @@ export class SpatialAudioEngine {
   setEffectAmount(effect: EffectType, value: number) {
     const now = this.ctx.currentTime
 
+    // Multiply by 2.0 for more noticeable effects (max gain is 2.0 instead of 1.0)
     if (effect === 'reverb') {
-      this.reverbGain.gain.exponentialRampToValueAtTime(Math.max(0.001, value), now + 0.1)
+      this.reverbGain.gain.exponentialRampToValueAtTime(Math.max(0.001, value * 2.0), now + 0.1)
     } else if (effect === 'delay') {
-      this.delayGain.gain.exponentialRampToValueAtTime(Math.max(0.001, value), now + 0.1)
+      this.delayGain.gain.exponentialRampToValueAtTime(Math.max(0.001, value * 2.0), now + 0.1)
     }
   }
 
@@ -239,5 +298,11 @@ export class SpatialAudioEngine {
 
   getLoadedSounds(): string[] {
     return Array.from(this.buffers.keys())
+  }
+
+  async resumeContext() {
+    if (this.ctx.state === 'suspended') {
+      await this.ctx.resume()
+    }
   }
 }
