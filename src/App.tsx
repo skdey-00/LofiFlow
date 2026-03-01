@@ -7,7 +7,6 @@ import { PresetPanel } from "./components/PresetPanel"
 import { AddSoundPanel } from "./components/AddSoundPanel"
 import { VolumeSlider } from "./components/VolumeSlider"
 import { InfoGuide } from "./components/InfoGuide"
-import { EQPanel } from "./components/EQPanel"
 
 const SOUND_CONFIG = [
   { id: "rain", emoji: "🌧️", x: 0, y: -100, muted: false },
@@ -34,7 +33,6 @@ export default function App() {
   const [showPresets, setShowPresets] = useState(false)
   const [showAddSound, setShowAddSound] = useState(false)
   const [showInfo, setShowInfo] = useState(false)
-  const [showEQ, setShowEQ] = useState(false)
   const [soundCounter, setSoundCounter] = useState(0)
   const [selectedSoundId, setSelectedSoundId] = useState<string | null>(null)
   const [hasDragged, setHasDragged] = useState(false)
@@ -370,30 +368,7 @@ export default function App() {
         >
           📚 Presets
         </motion.button>
-        <LofiToggle engine={engine} onToggleEffects={() => setShowEffects(!showEffects)} showEffects={showEffects} />
-        <motion.button
-          whileHover={{ scale: 1.05, y: -2 }}
-          whileTap={{ scale: 0.95 }}
-          onClick={() => setShowEQ(!showEQ)}
-          style={{
-            padding: "12px 16px",
-            borderRadius: "12px",
-            background: showEQ
-              ? "linear-gradient(135deg, rgba(236, 72, 153, 0.3) 0%, rgba(233, 196, 106, 0.3) 100%)"
-              : "rgba(255,255,255,0.1)",
-            border: showEQ
-              ? "2px solid rgba(236, 72, 153, 0.6)"
-              : "2px solid rgba(255,255,255,0.2)",
-            color: showEQ ? "rgba(250, 204, 150, 1)" : "white",
-            fontSize: "14px",
-            fontWeight: "600",
-            cursor: "pointer",
-            transition: "all 0.2s",
-            boxShadow: showEQ ? "0 4px 12px rgba(236, 72, 153, 0.3)" : "none"
-          }}
-        >
-          🎛️ EQ
-        </motion.button>
+        <LofiToggle engine={engine} onToggleEffects(() => setShowEffects(!showEffects)} showEffects={showEffects} />
       </div>
 
       {/* Info Button - Top Right */}
@@ -439,13 +414,6 @@ export default function App() {
           <EffectsPanel engine={engine} />
         )}
       </AnimatePresence>
-
-      {/* EQ Panel */}
-      <EQPanel
-        engine={engine}
-        isOpen={showEQ}
-        onClose={() => setShowEQ(false)}
-      />
 
       {/* Presets Panel */}
       <PresetPanel

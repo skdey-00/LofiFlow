@@ -5,6 +5,7 @@ export type SoundNodeChain = {
   filter: BiquadFilterNode
   sendGain: GainNode
   baseGain: number // Store the base gain level for unmuting
+  eqBands: BiquadFilterNode[] // 5-band EQ for this sound
 }
 
 export type EffectType = 'reverb' | 'delay'
@@ -44,6 +45,9 @@ export class SpatialAudioEngine {
     ceilingHeight: 3,
   }
 
+  // Store EQ settings for each sound
+  private soundEQSettings = new Map<string, Array<{ frequency: number; gain: number; Q: number; type: BiquadFilterType }>>()
+
   constructor() {
     this.masterLowpass.type = "lowpass"
     this.masterLowpass.frequency.value = 18000
@@ -76,30 +80,8 @@ export class SpatialAudioEngine {
     this.reverbGain.connect(this.masterGain)
     this.delayGain.connect(this.masterGain)
 
-    // Setup EQ bands (5-band parametric EQ)
-    const eqConfig = [
-      { type: 'lowshelf' as BiquadFilterType, frequency: 100, gain: 0, Q: 1 },
-      { type: 'peaking' as BiquadFilterType, frequency: 400, gain: 0, Q: 1 },
-      { type: 'peaking' as BiquadFilterType, frequency: 1000, gain: 0, Q: 1 },
-      { type: 'peaking' as BiquadFilterType, frequency: 2500, gain: 0, Q: 1 },
-      { type: 'highshelf' as BiquadFilterType, frequency: 8000, gain: 0, Q: 1 },
-    ]
-
-    let lastNode = this.masterGain
-    eqConfig.forEach(config => {
-      const filter = this.ctx.createBiquadFilter()
-      filter.type = config.type
-      filter.frequency.value = config.frequency
-      filter.gain.value = config.gain
-      filter.Q.value = config.Q
-      this.eqBands.push(filter)
-
-      lastNode.connect(filter)
-      lastNode = filter
-    })
-
-    // Main signal chain
-    lastNode.connect(this.masterLowpass)
+    // Main signal chain (no master EQ - EQ is now per-sound)
+    this.masterGain.connect(this.masterLowpass)
     this.masterLowpass.connect(this.analyser)
     this.analyser.connect(this.ctx.destination)
   }
@@ -161,17 +143,46 @@ export class SpatialAudioEngine {
     sendGain.gain.value = this.effectsSendGain
     gain.gain.value = 1.0 // Initial gain
 
-    // Connect dry signal
-    source.connect(gain).connect(panner).connect(filter).connect(this.masterGain)
+    // Create 5-band EQ for this sound
+    const eqBands: BiquadFilterNode[] = []
+    const eqConfig = [
+      { type: 'lowshelf' as BiquadFilterType, frequency: 100, gain: 0, Q: 1 },
+      { type: 'peaking' as BiquadFilterType, frequency: 400, gain: 0, Q: 1 },
+      { type: 'peaking' as BiquadFilterType, frequency: 1000, gain: 0, Q: 1 },
+      { type: 'peaking' as BiquadFilterType, frequency: 2500, gain: 0, Q: 1 },
+      { type: 'highshelf' as BiquadFilterType, frequency: 8000, gain: 0, Q: 1 },
+    ]
 
-    // Connect to effects sends
+    // Create EQ chain and connect
+    let lastNode: AudioNode = filter
+    eqConfig.forEach(config => {
+      const eqFilter = this.ctx.createBiquadFilter()
+      eqFilter.type = config.type
+      eqFilter.frequency.value = config.frequency
+      eqFilter.gain.value = config.gain
+      eqFilter.Q.value = config.Q
+      eqBands.push(eqFilter)
+      lastNode.connect(eqFilter)
+      lastNode = eqFilter
+    })
+
+    // Store EQ settings for this sound
+    this.soundEQSettings.set(id, eqConfig)
+
+    // Connect dry signal: source -> gain -> panner -> filter -> EQ bands -> masterGain
+    source.connect(gain)
+    gain.connect(panner)
+    panner.connect(filter)
+    lastNode.connect(this.masterGain)
+
+    // Connect to effects sends (after filter, before EQ)
     filter.connect(sendGain)
     sendGain.connect(this.reverbConvolver)
     sendGain.connect(this.delayNode)
 
     source.start()
 
-    this.sounds.set(id, { source, gain, panner, filter, sendGain, baseGain: 1.0 })
+    this.sounds.set(id, { source, gain, panner, filter, sendGain, baseGain: 1.0, eqBands })
   }
 
   stopSound(id: string) {
@@ -309,26 +320,32 @@ export class SpatialAudioEngine {
     }
   }
 
-  setEQBand(bandIndex: number, frequency: number, gain: number, Q: number, type: BiquadFilterType) {
-    const filter = this.eqBands[bandIndex]
-    if (!filter) return
+  setEQBand(soundId: string, bandIndex: number, gain: number) {
+    const sound = this.sounds.get(soundId)
+    if (!sound) return
+
+    const eqFilter = sound.eqBands[bandIndex]
+    if (!eqFilter) return
 
     const now = this.ctx.currentTime
-    filter.type = type
-    filter.frequency.exponentialRampToValueAtTime(frequency, now + 0.05)
-    filter.gain.exponentialRampToValueAtTime(gain, now + 0.05)
-    filter.Q.exponentialRampToValueAtTime(Q, now + 0.05)
+    eqFilter.gain.exponentialRampToValueAtTime(gain, now + 0.05)
+
+    // Update stored EQ settings
+    const settings = this.soundEQSettings.get(soundId)
+    if (settings && settings[bandIndex]) {
+      settings[bandIndex].gain = gain
+      this.soundEQSettings.set(soundId, settings)
+    }
   }
 
-  getEQBand(bandIndex: number): { frequency: number; gain: number; Q: number } {
-    const filter = this.eqBands[bandIndex]
-    if (!filter) return { frequency: 0, gain: 0, Q: 0 }
-
-    return {
-      frequency: filter.frequency.value,
-      gain: filter.gain.value,
-      Q: filter.Q.value,
-    }
+  getSoundEQ(soundId: string) {
+    return this.soundEQSettings.get(soundId) || [
+      { frequency: 100, gain: 0, Q: 1, type: 'lowshelf' as BiquadFilterType },
+      { frequency: 400, gain: 0, Q: 1, type: 'peaking' as BiquadFilterType },
+      { frequency: 1000, gain: 0, Q: 1, type: 'peaking' as BiquadFilterType },
+      { frequency: 2500, gain: 0, Q: 1, type: 'peaking' as BiquadFilterType },
+      { frequency: 8000, gain: 0, Q: 1, type: 'highshelf' as BiquadFilterType },
+    ]
   }
 
   setRoomConfig(config: Partial<RoomConfig>) {
