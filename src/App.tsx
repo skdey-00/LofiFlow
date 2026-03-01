@@ -368,7 +368,7 @@ export default function App() {
         >
           📚 Presets
         </motion.button>
-        <LofiToggle engine={engine} onToggleEffects(() => setShowEffects(!showEffects)} showEffects={showEffects} />
+        <LofiToggle engine={engine} onToggleEffects={() => setShowEffects(!showEffects)} showEffects={showEffects} />
       </div>
 
       {/* Info Button - Top Right */}
