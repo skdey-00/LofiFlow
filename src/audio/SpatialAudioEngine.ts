@@ -34,9 +34,6 @@ export class SpatialAudioEngine {
   private delayNode: DelayNode
   private delayFeedback: GainNode
 
-  // EQ nodes (5-band parametric EQ)
-  private eqBands: BiquadFilterNode[] = []
-
   // Room acoustics
   private roomConfig: RoomConfig = {
     width: 20,
