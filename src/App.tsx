@@ -7,6 +7,7 @@ import { PresetPanel } from "./components/PresetPanel"
 import { AddSoundPanel } from "./components/AddSoundPanel"
 import { VolumeSlider } from "./components/VolumeSlider"
 import { InfoGuide } from "./components/InfoGuide"
+import { SoundEQPanel } from "./components/SoundEQPanel"
 
 const SOUND_CONFIG = [
   { id: "rain", emoji: "🌧️", x: 0, y: -100, muted: false },
@@ -35,6 +36,7 @@ export default function App() {
   const [showInfo, setShowInfo] = useState(false)
   const [soundCounter, setSoundCounter] = useState(0)
   const [selectedSoundId, setSelectedSoundId] = useState<string | null>(null)
+  const [eqForSoundId, setEqForSoundId] = useState<string | null>(null)
   const [hasDragged, setHasDragged] = useState(false)
   const [mouseDownTime, setMouseDownTime] = useState(0)
   const [mouseDownPos, setMouseDownPos] = useState({ x: 0, y: 0 })
@@ -616,12 +618,28 @@ export default function App() {
                   y={0}
                   engine={engine}
                   onClose={() => setSelectedSoundId(null)}
+                  onOpenEQ={() => {
+                    setSelectedSoundId(null)
+                    setEqForSoundId(sound.id)
+                  }}
                 />
               )}
             </AnimatePresence>
           </motion.div>
         ))}
       </div>
+
+      {/* Sound EQ Panel */}
+      <AnimatePresence>
+        {eqForSoundId && (
+          <SoundEQPanel
+            soundId={eqForSoundId}
+            emoji={sounds.find(s => s.id === eqForSoundId)?.emoji || "🎵"}
+            engine={engine}
+            onClose={() => setEqForSoundId(null)}
+          />
+        )}
+      </AnimatePresence>
 
       <div style={{
         position: "absolute",
