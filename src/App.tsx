@@ -607,24 +607,6 @@ export default function App() {
                 ✓
               </div>
             )}
-
-            {/* Volume Slider */}
-            <AnimatePresence>
-              {selectedSoundId === sound.id && (
-                <VolumeSlider
-                  soundId={sound.id}
-                  emoji={sound.emoji}
-                  x={0}
-                  y={0}
-                  engine={engine}
-                  onClose={() => setSelectedSoundId(null)}
-                  onOpenEQ={() => {
-                    setSelectedSoundId(null)
-                    setEqForSoundId(sound.id)
-                  }}
-                />
-              )}
-            </AnimatePresence>
           </motion.div>
         ))}
       </div>
@@ -639,6 +621,28 @@ export default function App() {
             onClose={() => setEqForSoundId(null)}
           />
         )}
+      </AnimatePresence>
+
+      {/* Volume Sliders - Rendered at root level for proper z-index */}
+      <AnimatePresence>
+        {selectedSoundId && sounds.map((sound) => {
+          if (sound.id !== selectedSoundId) return null
+          return (
+            <VolumeSlider
+              key={sound.id}
+              soundId={sound.id}
+              emoji={sound.emoji}
+              x={sound.x}
+              y={sound.y}
+              engine={engine}
+              onClose={() => setSelectedSoundId(null)}
+              onOpenEQ={() => {
+                setSelectedSoundId(null)
+                setEqForSoundId(sound.id)
+              }}
+            />
+          )
+        })}
       </AnimatePresence>
 
       <div style={{
