@@ -33,6 +33,9 @@ export class SpatialAudioEngine {
   private delayNode: DelayNode
   private delayFeedback: GainNode
 
+  // EQ nodes (5-band parametric EQ)
+  private eqBands: BiquadFilterNode[] = []
+
   // Room acoustics
   private roomConfig: RoomConfig = {
     width: 20,
@@ -73,8 +76,30 @@ export class SpatialAudioEngine {
     this.reverbGain.connect(this.masterGain)
     this.delayGain.connect(this.masterGain)
 
+    // Setup EQ bands (5-band parametric EQ)
+    const eqConfig = [
+      { type: 'lowshelf' as BiquadFilterType, frequency: 100, gain: 0, Q: 1 },
+      { type: 'peaking' as BiquadFilterType, frequency: 400, gain: 0, Q: 1 },
+      { type: 'peaking' as BiquadFilterType, frequency: 1000, gain: 0, Q: 1 },
+      { type: 'peaking' as BiquadFilterType, frequency: 2500, gain: 0, Q: 1 },
+      { type: 'highshelf' as BiquadFilterType, frequency: 8000, gain: 0, Q: 1 },
+    ]
+
+    let lastNode = this.masterGain
+    eqConfig.forEach(config => {
+      const filter = this.ctx.createBiquadFilter()
+      filter.type = config.type
+      filter.frequency.value = config.frequency
+      filter.gain.value = config.gain
+      filter.Q.value = config.Q
+      this.eqBands.push(filter)
+
+      lastNode.connect(filter)
+      lastNode = filter
+    })
+
     // Main signal chain
-    this.masterGain.connect(this.masterLowpass)
+    lastNode.connect(this.masterLowpass)
     this.masterLowpass.connect(this.analyser)
     this.analyser.connect(this.ctx.destination)
   }
@@ -281,6 +306,28 @@ export class SpatialAudioEngine {
       return this.reverbGain.gain.value
     } else {
       return this.delayGain.gain.value
+    }
+  }
+
+  setEQBand(bandIndex: number, frequency: number, gain: number, Q: number, type: BiquadFilterType) {
+    const filter = this.eqBands[bandIndex]
+    if (!filter) return
+
+    const now = this.ctx.currentTime
+    filter.type = type
+    filter.frequency.exponentialRampToValueAtTime(frequency, now + 0.05)
+    filter.gain.exponentialRampToValueAtTime(gain, now + 0.05)
+    filter.Q.exponentialRampToValueAtTime(Q, now + 0.05)
+  }
+
+  getEQBand(bandIndex: number): { frequency: number; gain: number; Q: number } {
+    const filter = this.eqBands[bandIndex]
+    if (!filter) return { frequency: 0, gain: 0, Q: 0 }
+
+    return {
+      frequency: filter.frequency.value,
+      gain: filter.gain.value,
+      Q: filter.Q.value,
     }
   }
 
